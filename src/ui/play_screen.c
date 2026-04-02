@@ -19,34 +19,67 @@ typedef struct {
     PlayScreen *screen;
 } PlayViewModel;
 
-/** Jar in screen space (128x64): rounded glass, water band, pit, toothpicks. */
+/**
+ * Tumbler glass in screen space: wider at rim, narrower base (not a flat square).
+ * CupCx/CupY/CupH keep the pit and HUD layout aligned with the old jar box.
+ */
 enum {
-    JarX = 34,
-    JarY = 14,
-    JarW = 60,
-    JarH = 38,
-    JarR = 3,
+    CupCx = 64,
+    CupY = 14,
+    CupH = 38,
+    CupTopY = CupY + 2,
+    CupBotY = CupY + CupH - 2,
+    CupTopHalfW = 28,
+    CupBotHalfW = 21,
 };
 
 static void play_on_action(PlayScreen *screen);
 
-static void draw_toothpicks(Canvas *canvas) {
-    const int y0 = JarY + 1;
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_line(canvas, JarX + 14, y0 - 1, JarX + 8, y0 + 5);
-    canvas_draw_line(canvas, JarX + JarW / 2, y0 - 2, JarX + JarW / 2, y0 + 4);
-    canvas_draw_line(canvas, JarX + JarW - 14, y0 - 1, JarX + JarW - 8, y0 + 5);
+/** Left/right inner x at row y for the trapezoid glass (inclusive edges are the wall). */
+static void glass_horizontal_at(int cx, int top_y, int bot_y, int top_half_w, int bot_half_w, int y,
+                                int *out_l, int *out_r) {
+    const int tl = cx - top_half_w;
+    const int tr = cx + top_half_w;
+    const int bl = cx - bot_half_w;
+    const int br = cx + bot_half_w;
+    if (y <= top_y) {
+        *out_l = tl;
+        *out_r = tr;
+        return;
+    }
+    if (y >= bot_y) {
+        *out_l = bl;
+        *out_r = br;
+        return;
+    }
+    const int dy = bot_y - top_y;
+    const int n = y - top_y;
+    *out_l = tl + (bl - tl) * n / dy;
+    *out_r = tr + (br - tr) * n / dy;
 }
 
-static void draw_water_fill(Canvas *canvas, int y_surface) {
-    const int inner_x = JarX + 2;
-    const int inner_w = JarW - 4;
-    const int bottom = JarY + JarH - 2;
-    if (y_surface >= bottom) {
+static void cup_horizontal_at(int y, int *out_l, int *out_r) {
+    glass_horizontal_at(CupCx, CupTopY, CupBotY, CupTopHalfW, CupBotHalfW, y, out_l, out_r);
+}
+
+/** Water: checker dither reads as “clear” on 1-bpp; solid line at the surface. */
+static void draw_water_dither(Canvas *canvas, int y_surface) {
+    if (y_surface >= CupBotY) {
         return;
     }
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_box(canvas, inner_x, y_surface, inner_w, (size_t)(bottom - y_surface));
+    int l = 0;
+    int r = 0;
+    cup_horizontal_at(y_surface, &l, &r);
+    canvas_draw_line(canvas, l, y_surface, r, y_surface);
+    for (int y = y_surface + 1; y < CupBotY; y++) {
+        cup_horizontal_at(y, &l, &r);
+        for (int x = l + 1; x < r; x++) {
+            if (((x + y) & 1) == 0) {
+                canvas_draw_dot(canvas, x, y);
+            }
+        }
+    }
 }
 
 /** Avocado pit: no face; optional crack when dried (game over). */
@@ -65,7 +98,7 @@ static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
     if (roots == 0) {
         return;
     }
-    const int jar_bottom = JarY + JarH - 2;
+    const int jar_bottom = CupBotY;
     canvas_set_color(canvas, ColorBlack);
     /* Taproot length scales with level so growth is visible on screen. */
     const int tap_len = 5 + (int)roots * 2;
@@ -96,9 +129,20 @@ static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
 
 static void draw_grime(Canvas *canvas, uint8_t grime) {
     canvas_set_color(canvas, ColorBlack);
+    const int y_span = CupBotY - CupTopY - 10;
+    if (y_span < 4) {
+        return;
+    }
     for (uint8_t i = 0; i < grime && i < 12u; i++) {
-        const int x = JarX + 4 + (int)((i * 17u) % (unsigned)(JarW - 8));
-        const int y = JarY + 6 + (int)((i * 13u) % (unsigned)(JarH - 12));
+        const int y = CupTopY + 6 + (int)((i * 13u) % (unsigned)y_span);
+        int l = 0;
+        int r = 0;
+        cup_horizontal_at(y, &l, &r);
+        const int inner = r - l - 8;
+        if (inner <= 1) {
+            continue;
+        }
+        const int x = l + 4 + (int)((i * 17u) % (unsigned)inner);
         canvas_draw_dot(canvas, x, y);
         if (i > 3u) {
             canvas_draw_dot(canvas, x + 1, y);
@@ -106,9 +150,16 @@ static void draw_grime(Canvas *canvas, uint8_t grime) {
     }
 }
 
-static void draw_jar_outline(Canvas *canvas) {
+static void draw_cup_outline(Canvas *canvas) {
+    const int top_l = CupCx - CupTopHalfW;
+    const int top_r = CupCx + CupTopHalfW;
+    const int bot_l = CupCx - CupBotHalfW;
+    const int bot_r = CupCx + CupBotHalfW;
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_rframe(canvas, JarX, JarY, JarW, JarH, JarR);
+    canvas_draw_line(canvas, top_l, CupTopY, top_r, CupTopY);
+    canvas_draw_line(canvas, top_l, CupTopY, bot_l, CupBotY);
+    canvas_draw_line(canvas, top_r, CupTopY, bot_r, CupBotY);
+    canvas_draw_line(canvas, bot_l, CupBotY, bot_r, CupBotY);
 }
 
 static void draw_star_sparkle(Canvas *canvas, int cx, int cy) {
@@ -120,41 +171,46 @@ static void draw_star_sparkle(Canvas *canvas, int cx, int cy) {
     canvas_draw_line(canvas, cx - 7, cy + 7, cx + 7, cy - 7);
 }
 
-/**
- * Victory-screen mascot: glass + water + pit (reads at 1 bpp).
- * To tweak art: adjust the constants below, or add a baked icon under assets/
- * (PNG → .icon via fbt) and draw it with canvas_draw_icon after including the
- * generated header; fap_icon in application.fam is only the launcher 10×10.
- */
+/** Victory-screen: same tapered glass, dither water, pit + sprout. */
 static void draw_mini_avocado(Canvas *canvas, int cx, int cy) {
-    /* Jar: open top, U + rim (screen space relative to center). */
-    const int rim_l = cx - 14;
-    const int rim_r = cx + 14;
-    const int rim_y = cy - 12;
-    const int side_bot = cy + 10;
-
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_line(canvas, rim_l, rim_y, rim_r, rim_y);
-    canvas_draw_line(canvas, rim_l, rim_y, rim_l, side_bot);
-    canvas_draw_line(canvas, rim_r, rim_y, rim_r, side_bot);
-    canvas_draw_line(canvas, rim_l, side_bot, rim_r, side_bot);
-
-    /* “Water”: two lines in the lower jar (below the pit). */
-    const int y_w1 = cy + 4;
-    const int y_w2 = cy + 6;
-    canvas_draw_line(canvas, rim_l + 2, y_w1, rim_r - 2, y_w1);
-    canvas_draw_line(canvas, rim_l + 2, y_w2, rim_r - 2, y_w2);
-
-    /* Pit: outer peel as stroke (not a solid disc — reads clearer small). */
+    const int top_y = cy - 12;
+    const int bot_y = cy + 10;
+    const int top_hw = 14;
+    const int bot_hw = 11;
     const int pit_cx = cx;
     const int pit_cy = cy - 1;
     const size_t peel_r = 7;
+    const int y_surface = pit_cy + (int)peel_r - 3;
+
+    canvas_set_color(canvas, ColorBlack);
+    int l = 0;
+    int r = 0;
+    glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, top_y, &l, &r);
+    canvas_draw_line(canvas, l, top_y, r, top_y);
+    const int bl = cx - bot_hw;
+    const int br = cx + bot_hw;
+    canvas_draw_line(canvas, cx - top_hw, top_y, bl, bot_y);
+    canvas_draw_line(canvas, cx + top_hw, top_y, br, bot_y);
+    canvas_draw_line(canvas, bl, bot_y, br, bot_y);
+
+    if (y_surface < bot_y) {
+        glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, y_surface, &l, &r);
+        canvas_draw_line(canvas, l, y_surface, r, y_surface);
+        for (int y = y_surface + 1; y < bot_y; y++) {
+            glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, y, &l, &r);
+            for (int x = l + 1; x < r; x++) {
+                if (((x + y) & 1) == 0) {
+                    canvas_draw_dot(canvas, x, y);
+                }
+            }
+        }
+    }
+
     canvas_draw_circle(canvas, pit_cx, pit_cy, peel_r);
     canvas_draw_disc(canvas, pit_cx, pit_cy + 1, 3);
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_dot(canvas, pit_cx - 2, pit_cy - 2);
     canvas_set_color(canvas, ColorBlack);
-    /* Tiny sprout so it’s “avocado pit”, not a plain ball. */
     canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r, pit_cx, pit_cy - (int)peel_r - 2);
     canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r - 1, pit_cx - 3,
                      pit_cy - (int)peel_r - 3);
@@ -193,9 +249,9 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     const int cx = 64;
     const size_t pit_r = game_over ? 8u : 9u;
     /* Pit center: mostly above water; only ~3 px of the pit dips below the surface. */
-    const int pit_cy = game_over ? (JarY + 22) : (JarY + 21);
+    const int pit_cy = game_over ? (CupY + 22) : (CupY + 21);
     const int y_surface_normal = pit_cy + (int)pit_r - 3;
-    const int y_surface = game_over ? (JarY + JarH - 9) : y_surface_normal;
+    const int y_surface = game_over ? (CupY + CupH - 9) : y_surface_normal;
 
     if (game_over) {
         canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, "GAME OVER");
@@ -203,7 +259,7 @@ static void play_draw_callback(Canvas *canvas, void *model) {
         canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, "Avocado pit");
     }
 
-    draw_water_fill(canvas, y_surface);
+    draw_water_dither(canvas, y_surface);
 
     draw_pit(canvas, cx, pit_cy, pit_r, game_over);
 
@@ -212,8 +268,7 @@ static void play_draw_callback(Canvas *canvas, void *model) {
         draw_grime(canvas, d->dirty_level);
     }
 
-    draw_toothpicks(canvas);
-    draw_jar_outline(canvas);
+    draw_cup_outline(canvas);
 
     canvas_set_font(canvas, FontSecondary);
     char line[48];
