@@ -45,7 +45,7 @@ bool avocado_data_load(AvocadoData *data) {
         furi_record_close(RECORD_STORAGE);
 
         if (read == sizeof(AvocadoDataFile)) {
-            AvocadoDataFile *f = (AvocadoDataFile *)buf;
+            const AvocadoDataFile *f = (const AvocadoDataFile *)buf;
             if (f->magic == AVOCADO_SAVE_MAGIC) {
                 data->last_timestamp = f->last_timestamp;
                 data->dirty_level = f->dirty_level;
@@ -55,7 +55,7 @@ bool avocado_data_load(AvocadoData *data) {
             }
         }
         if (read == sizeof(AvocadoDataFileV1)) {
-            AvocadoDataFileV1 *v1 = (AvocadoDataFileV1 *)buf;
+            const AvocadoDataFileV1 *v1 = (const AvocadoDataFileV1 *)buf;
             data->last_timestamp = v1->last_timestamp;
             data->dirty_level = v1->dirty_level;
             data->roots_length = v1->roots_length;
@@ -101,7 +101,7 @@ void avocado_onboarding_complete(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
-void avocado_data_save(AvocadoData *data) {
+void avocado_data_save(const AvocadoData *data) {
     Storage *storage = furi_record_open(RECORD_STORAGE);
     File *file = storage_file_alloc(storage);
 

@@ -218,6 +218,8 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     }
 }
 
+/* Flipper ViewInputCallback uses non-const InputEvent*; cannot be const here. */
+// cppcheck-suppress constParameterCallback
 static bool play_input_callback(InputEvent *event, void *context) {
     PlayScreen *screen = context;
     if (event->type != InputTypeShort) {

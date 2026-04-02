@@ -1,5 +1,8 @@
 # Avocado Zero — host unit tests (domain) + Flipper .fap via fbt
+# Symlink folder name under applications_user (short path).
 PROJECT_NAME = avocado_zero
+
+FAP_APPID = flipper_avocado_zero
 
 FLIPPER_FIRMWARE_PATH ?= /home/<YOUR_PATH>/flipperzero-firmware
 PWD = $(shell pwd)
@@ -30,7 +33,7 @@ format:
 	clang-format -i $(FORMAT_FILES)
 
 linter:
-	cppcheck --enable=all -I. \
+	cppcheck --enable=all --inline-suppr -I. \
 		--suppress=missingIncludeSystem \
 		--suppress=unusedFunction:main.c \
 		src/domain/avocado_rules.c src/app/avocado_session.c \
@@ -63,7 +66,7 @@ clean_firmware:
 
 fap: prepare clean_firmware clean
 	@if [ -d "$(FLIPPER_FIRMWARE_PATH)" ]; then \
-		cd $(FLIPPER_FIRMWARE_PATH) && ./fbt fap_$(PROJECT_NAME); \
+		cd $(FLIPPER_FIRMWARE_PATH) && ./fbt fap_$(FAP_APPID); \
 	fi
 
 clean:
