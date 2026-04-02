@@ -20,8 +20,8 @@ typedef struct {
 } PlayViewModel;
 
 /**
- * Tumbler glass in screen space: wider at rim, narrower base (not a flat square).
- * CupCx/CupY/CupH keep the pit and HUD layout aligned with the old jar box.
+ * Tumbler: rim only slightly wider than the pit (r=9 → Ø18; mouth Ø22 → 2 px gap/side).
+ * Base a bit narrower so it still reads as a glass.
  */
 enum {
     CupCx = 64,
@@ -29,8 +29,8 @@ enum {
     CupH = 38,
     CupTopY = CupY + 2,
     CupBotY = CupY + CupH - 2,
-    CupTopHalfW = 28,
-    CupBotHalfW = 21,
+    CupTopHalfW = 11,
+    CupBotHalfW = 9,
 };
 
 static void play_on_action(PlayScreen *screen);
@@ -62,7 +62,25 @@ static void cup_horizontal_at(int y, int *out_l, int *out_r) {
     glass_horizontal_at(CupCx, CupTopY, CupBotY, CupTopHalfW, CupBotHalfW, y, out_l, out_r);
 }
 
-/** Water: checker dither reads as “clear” on 1-bpp; solid line at the surface. */
+/**
+ * Normal play: water fills the cup interior up to the rim (below CupTopY line).
+ * Pit is drawn on top so it still reads as floating with only a sliver submerged.
+ */
+static void draw_water_dither_full_cup(Canvas *canvas) {
+    canvas_set_color(canvas, ColorBlack);
+    int l = 0;
+    int r = 0;
+    for (int y = CupTopY + 1; y < CupBotY; y++) {
+        cup_horizontal_at(y, &l, &r);
+        for (int x = l + 1; x < r; x++) {
+            if (((x + y) & 1) == 0) {
+                canvas_draw_dot(canvas, x, y);
+            }
+        }
+    }
+}
+
+/** Game over: low puddle + surface line (drought). */
 static void draw_water_dither(Canvas *canvas, int y_surface) {
     if (y_surface >= CupBotY) {
         return;
@@ -175,12 +193,12 @@ static void draw_star_sparkle(Canvas *canvas, int cx, int cy) {
 static void draw_mini_avocado(Canvas *canvas, int cx, int cy) {
     const int top_y = cy - 12;
     const int bot_y = cy + 10;
-    const int top_hw = 14;
-    const int bot_hw = 11;
+    /* Mini pit peel_r=7 (Ø14); rim Ø16 → ~1 px/side clearance. */
+    const int top_hw = 8;
+    const int bot_hw = 7;
     const int pit_cx = cx;
     const int pit_cy = cy - 1;
     const size_t peel_r = 7;
-    const int y_surface = pit_cy + (int)peel_r - 3;
 
     canvas_set_color(canvas, ColorBlack);
     int l = 0;
@@ -193,15 +211,11 @@ static void draw_mini_avocado(Canvas *canvas, int cx, int cy) {
     canvas_draw_line(canvas, cx + top_hw, top_y, br, bot_y);
     canvas_draw_line(canvas, bl, bot_y, br, bot_y);
 
-    if (y_surface < bot_y) {
-        glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, y_surface, &l, &r);
-        canvas_draw_line(canvas, l, y_surface, r, y_surface);
-        for (int y = y_surface + 1; y < bot_y; y++) {
-            glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, y, &l, &r);
-            for (int x = l + 1; x < r; x++) {
-                if (((x + y) & 1) == 0) {
-                    canvas_draw_dot(canvas, x, y);
-                }
+    for (int y = top_y + 1; y < bot_y; y++) {
+        glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, y, &l, &r);
+        for (int x = l + 1; x < r; x++) {
+            if (((x + y) & 1) == 0) {
+                canvas_draw_dot(canvas, x, y);
             }
         }
     }
@@ -250,8 +264,7 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     const size_t pit_r = game_over ? 8u : 9u;
     /* Pit center: mostly above water; only ~3 px of the pit dips below the surface. */
     const int pit_cy = game_over ? (CupY + 22) : (CupY + 21);
-    const int y_surface_normal = pit_cy + (int)pit_r - 3;
-    const int y_surface = game_over ? (CupY + CupH - 9) : y_surface_normal;
+    const int y_drought_surface = CupY + CupH - 9;
 
     if (game_over) {
         canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, "GAME OVER");
@@ -259,7 +272,11 @@ static void play_draw_callback(Canvas *canvas, void *model) {
         canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, "Avocado pit");
     }
 
-    draw_water_dither(canvas, y_surface);
+    if (game_over) {
+        draw_water_dither(canvas, y_drought_surface);
+    } else {
+        draw_water_dither_full_cup(canvas);
+    }
 
     draw_pit(canvas, cx, pit_cy, pit_r, game_over);
 
