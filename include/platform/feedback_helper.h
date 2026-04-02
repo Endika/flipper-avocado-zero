@@ -3,7 +3,7 @@
  */
 #pragma once
 #include <furi.h>
-#include <notification/notification_app.h>
+#include <notification/notification.h>
 
 typedef struct {
     NotificationApp *notifications;
