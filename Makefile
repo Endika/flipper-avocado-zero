@@ -1,7 +1,7 @@
 # Avocado Zero — host unit tests (domain) + Flipper .fap via fbt
 PROJECT_NAME = avocado_zero
 
-FLIPPER_FIRMWARE_PATH ?= /home/endika/flipperzero-firmware
+FLIPPER_FIRMWARE_PATH ?= /home/<YOUR_PATH>/flipperzero-firmware
 PWD = $(shell pwd)
 
 CC = gcc
