@@ -49,31 +49,16 @@ static void draw_water_fill(Canvas *canvas, int y_surface) {
     canvas_draw_box(canvas, inner_x, y_surface, inner_w, (size_t)(bottom - y_surface));
 }
 
-static void draw_pit_happy(Canvas *canvas, int cx, int cy) {
+/** Avocado pit: no face; optional crack when dried (game over). */
+static void draw_pit(Canvas *canvas, int cx, int cy, size_t radius, bool cracked) {
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_disc(canvas, cx, cy, 10);
-    /* Highlight */
+    canvas_draw_disc(canvas, cx, cy, radius);
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_disc(canvas, cx - 4, cy - 3, 3);
+    canvas_draw_disc(canvas, cx - 3, cy - 3, 2);
     canvas_set_color(canvas, ColorBlack);
-    /* Eyes */
-    canvas_draw_box(canvas, cx - 5, cy - 2, 2, 2);
-    canvas_draw_box(canvas, cx + 3, cy - 2, 2, 2);
-    /* Smile */
-    canvas_draw_line(canvas, cx - 4, cy + 4, cx - 1, cy + 5);
-    canvas_draw_line(canvas, cx + 1, cy + 5, cx + 4, cy + 4);
-}
-
-static void draw_pit_sad(Canvas *canvas, int cx, int cy) {
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_disc(canvas, cx, cy, 8);
-    /* X eyes */
-    canvas_draw_line(canvas, cx - 6, cy - 4, cx - 3, cy - 1);
-    canvas_draw_line(canvas, cx - 3, cy - 4, cx - 6, cy - 1);
-    canvas_draw_line(canvas, cx + 3, cy - 4, cx + 6, cy - 1);
-    canvas_draw_line(canvas, cx + 6, cy - 4, cx + 3, cy - 1);
-    /* Frown */
-    canvas_draw_line(canvas, cx - 4, cy + 5, cx + 4, cy + 3);
+    if (cracked) {
+        canvas_draw_line(canvas, cx - (int)radius + 2, cy - 2, cx + (int)radius - 2, cy + 2);
+    }
 }
 
 static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
@@ -135,15 +120,46 @@ static void draw_star_sparkle(Canvas *canvas, int cx, int cy) {
     canvas_draw_line(canvas, cx - 7, cy + 7, cx + 7, cy - 7);
 }
 
+/**
+ * Victory-screen mascot: glass + water + pit (reads at 1 bpp).
+ * To tweak art: adjust the constants below, or add a baked icon under assets/
+ * (PNG → .icon via fbt) and draw it with canvas_draw_icon after including the
+ * generated header; fap_icon in application.fam is only the launcher 10×10.
+ */
 static void draw_mini_avocado(Canvas *canvas, int cx, int cy) {
+    /* Jar: open top, U + rim (screen space relative to center). */
+    const int rim_l = cx - 14;
+    const int rim_r = cx + 14;
+    const int rim_y = cy - 12;
+    const int side_bot = cy + 10;
+
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_disc(canvas, cx, cy, 10);
+    canvas_draw_line(canvas, rim_l, rim_y, rim_r, rim_y);
+    canvas_draw_line(canvas, rim_l, rim_y, rim_l, side_bot);
+    canvas_draw_line(canvas, rim_r, rim_y, rim_r, side_bot);
+    canvas_draw_line(canvas, rim_l, side_bot, rim_r, side_bot);
+
+    /* “Water”: two lines in the lower jar (below the pit). */
+    const int y_w1 = cy + 4;
+    const int y_w2 = cy + 6;
+    canvas_draw_line(canvas, rim_l + 2, y_w1, rim_r - 2, y_w1);
+    canvas_draw_line(canvas, rim_l + 2, y_w2, rim_r - 2, y_w2);
+
+    /* Pit: outer peel as stroke (not a solid disc — reads clearer small). */
+    const int pit_cx = cx;
+    const int pit_cy = cy - 1;
+    const size_t peel_r = 7;
+    canvas_draw_circle(canvas, pit_cx, pit_cy, peel_r);
+    canvas_draw_disc(canvas, pit_cx, pit_cy + 1, 3);
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_disc(canvas, cx - 4, cy - 3, 3);
+    canvas_draw_dot(canvas, pit_cx - 2, pit_cy - 2);
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_box(canvas, cx - 5, cy - 2, 2, 2);
-    canvas_draw_box(canvas, cx + 3, cy - 2, 2, 2);
-    canvas_draw_line(canvas, cx - 3, cy + 4, cx + 3, cy + 4);
+    /* Tiny sprout so it’s “avocado pit”, not a plain ball. */
+    canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r, pit_cx, pit_cy - (int)peel_r - 2);
+    canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r - 1, pit_cx - 3,
+                     pit_cy - (int)peel_r - 3);
+    canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r - 1, pit_cx + 3,
+                     pit_cy - (int)peel_r - 3);
 }
 
 static void draw_victory_screen(Canvas *canvas) {
@@ -175,7 +191,11 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 
     const bool game_over = avocado_rules_is_game_over(d);
     const int cx = 64;
-    const int y_surface = game_over ? (JarY + JarH - 10) : (JarY + 13);
+    const size_t pit_r = game_over ? 8u : 9u;
+    /* Pit center: mostly above water; only ~3 px of the pit dips below the surface. */
+    const int pit_cy = game_over ? (JarY + 22) : (JarY + 21);
+    const int y_surface_normal = pit_cy + (int)pit_r - 3;
+    const int y_surface = game_over ? (JarY + JarH - 9) : y_surface_normal;
 
     if (game_over) {
         canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, "GAME OVER");
@@ -185,15 +205,10 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 
     draw_water_fill(canvas, y_surface);
 
-    const int pit_cy = game_over ? (JarY + 18) : (JarY + 20);
-    if (game_over) {
-        draw_pit_sad(canvas, cx, pit_cy);
-    } else {
-        draw_pit_happy(canvas, cx, pit_cy);
-    }
+    draw_pit(canvas, cx, pit_cy, pit_r, game_over);
 
     if (!game_over) {
-        draw_roots(canvas, cx, pit_cy + 9, d->roots_length);
+        draw_roots(canvas, cx, pit_cy + (int)pit_r, d->roots_length);
         draw_grime(canvas, d->dirty_level);
     }
 
