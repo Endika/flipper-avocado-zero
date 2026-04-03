@@ -1,5 +1,5 @@
-# Host tests + FAP via fbt. Symlink name under applications_user (matches apps_data path).
-PROJECT_NAME = avocado-zero
+# Host tests + FAP via fbt. Symlink under applications_user (matches apps_data path).
+PROJECT_NAME = avocado_zero
 
 FAP_APPID = flipper_avocado_zero
 
