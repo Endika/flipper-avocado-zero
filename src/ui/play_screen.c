@@ -276,7 +276,8 @@ static void play_draw_callback(Canvas *canvas, void *model) {
      * Water fill starts at CupTopY + 1. Pit center high so most of the disc is above
      * the water line (y < CupTopY + 1): reads as floating with top sticking out of the glass.
      */
-    const int pit_cy = game_over ? (CupY + 22) : (CupY + 5);
+    /* Higher center → more disc above water row CupTopY+1; r=9 keeps a thin wet band. */
+    const int pit_cy = game_over ? (CupY + 22) : (CupY + 1);
     const int y_drought_surface = CupY + CupH - 9;
 
     if (game_over) {
