@@ -133,10 +133,13 @@ static void draw_pit_toothpicks_on_rim(Canvas *canvas, int cx, int cy, size_t ra
     if (hw_c < 1) {
         hw_c = 1;
     }
+    const int stick_past_rim = 22;
     canvas_set_color(canvas, ColorBlack);
-    /* Corner of top rim to pit mid-height: rests on glass, pierces the seed. */
-    canvas_draw_line(canvas, rim_l, CupTopY, cx - hw_c, cy);
-    canvas_draw_line(canvas, rim_r, CupTopY, cx + hw_c, cy);
+    /* Pit to rim corner, then long horizontal stub outside the glass. */
+    canvas_draw_line(canvas, cx - hw_c, cy, rim_l, CupTopY);
+    canvas_draw_line(canvas, rim_l, CupTopY, rim_l - stick_past_rim, CupTopY);
+    canvas_draw_line(canvas, cx + hw_c, cy, rim_r, CupTopY);
+    canvas_draw_line(canvas, rim_r, CupTopY, rim_r + stick_past_rim, CupTopY);
 }
 
 static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
@@ -212,36 +215,36 @@ static void draw_cup_outline(Canvas *canvas) {
 }
 
 /**
- * Cross-section of half an avocado: rounded peel left, flat cut on the right, white pit cavity
- * on the cut face (reads as flesh + seed hole, not an abstract blob).
+ * Avocado half viewed from the front: the flat cut faces you (oval slice), dark flesh/skin with a
+ * light oval pit cavity in the middle.
  */
 static void draw_half_avocado_silhouette(Canvas *canvas, int cx, int cy) {
-    static const uint8_t k_outer[31] = {4,  6,  8,  10, 12, 14, 16, 17, 18, 19, 20,
-                                        21, 21, 22, 22, 22, 22, 22, 21, 21, 20, 19,
-                                        18, 17, 16, 14, 12, 10, 8,  6,  4};
-    static const uint8_t k_pit_h[19] = {2, 3, 4, 5, 6, 7, 7, 8, 8, 8, 8, 8, 7, 7, 6, 5, 4, 3, 2};
-    const int x_flat = cx + 11;
-    const int pit_cx = cx + 4;
+    static const uint8_t k_slice_hw[31] = {5,  7,  9,  10, 11, 12, 13, 14, 15, 15, 16,
+                                           16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 15,
+                                           15, 14, 13, 12, 11, 10, 9,  7,  5};
+    static const uint8_t k_pit_front_hw[21] = {3, 4, 5, 6, 7, 7, 8, 8, 9, 9, 9,
+                                               9, 9, 8, 8, 7, 7, 6, 5, 4, 3};
 
     canvas_set_color(canvas, ColorBlack);
     for (int i = 0; i < 31; i++) {
         const int y = cy - 15 + i;
-        canvas_draw_line(canvas, x_flat - (int)k_outer[i], y, x_flat, y);
+        const int hw = (int)k_slice_hw[i];
+        canvas_draw_line(canvas, cx - hw, y, cx + hw, y);
     }
 
     canvas_set_color(canvas, ColorWhite);
-    for (int i = 0; i < 19; i++) {
-        const int y = cy - 9 + i;
-        const int hw = (int)k_pit_h[i];
-        canvas_draw_line(canvas, pit_cx - hw, y, pit_cx + hw, y);
+    for (int i = 0; i < 21; i++) {
+        const int y = cy - 10 + i;
+        const int hw = (int)k_pit_front_hw[i];
+        canvas_draw_line(canvas, cx - hw, y, cx + hw, y);
     }
 
     canvas_set_color(canvas, ColorBlack);
-    for (int i = 0; i < 19; i++) {
-        const int y = cy - 9 + i;
-        const int hw = (int)k_pit_h[i];
-        canvas_draw_dot(canvas, pit_cx - hw, y);
-        canvas_draw_dot(canvas, pit_cx + hw, y);
+    for (int i = 0; i < 21; i++) {
+        const int y = cy - 10 + i;
+        const int hw = (int)k_pit_front_hw[i];
+        canvas_draw_dot(canvas, cx - hw, y);
+        canvas_draw_dot(canvas, cx + hw, y);
     }
 }
 
