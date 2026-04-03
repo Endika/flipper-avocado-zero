@@ -116,12 +116,27 @@ static void draw_pit(Canvas *canvas, int cx, int cy, size_t radius, bool cracked
 
     if (cracked) {
         canvas_draw_line(canvas, cx - scale + 1, cy - 3, cx + scale - 1, cy + 4);
-    } else {
-        const int mid_hw = (int)k_pit_half_w[9] * scale / base_r;
-        const int yp = cy - 1;
-        canvas_draw_line(canvas, cx - mid_hw, yp, cx - mid_hw - 11, yp + 2);
-        canvas_draw_line(canvas, cx + mid_hw, yp, cx + mid_hw + 11, yp + 2);
     }
+}
+
+static void draw_pit_toothpicks_on_rim(Canvas *canvas, int cx, int cy, size_t radius) {
+    int rim_l = 0;
+    int rim_r = 0;
+    cup_horizontal_at(CupTopY, &rim_l, &rim_r);
+    const int dy_rim = CupTopY - cy;
+    if (dy_rim < -9 || dy_rim > 9) {
+        return;
+    }
+    const int base_r = 9;
+    const int scale = (int)radius;
+    int hw_c = (int)k_pit_half_w[9] * scale / base_r;
+    if (hw_c < 1) {
+        hw_c = 1;
+    }
+    canvas_set_color(canvas, ColorBlack);
+    /* Corner of top rim to pit mid-height: rests on glass, pierces the seed. */
+    canvas_draw_line(canvas, rim_l, CupTopY, cx - hw_c, cy);
+    canvas_draw_line(canvas, rim_r, CupTopY, cx + hw_c, cy);
 }
 
 static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
@@ -196,18 +211,38 @@ static void draw_cup_outline(Canvas *canvas) {
     canvas_draw_line(canvas, bot_l, CupBotY, bot_r, CupBotY);
 }
 
-/** Half avocado: flat cut on the right, rounded peel on the left (filled silhouette). */
+/**
+ * Cross-section of half an avocado: rounded peel left, flat cut on the right, white pit cavity
+ * on the cut face (reads as flesh + seed hole, not an abstract blob).
+ */
 static void draw_half_avocado_silhouette(Canvas *canvas, int cx, int cy) {
-    static const uint8_t k_w[29] = {3,  5,  7,  9,  11, 13, 15, 16, 17, 18, 19, 19, 20, 20, 20,
-                                    20, 20, 19, 19, 18, 17, 16, 15, 13, 11, 9,  7,  5,  3};
-    const int x_flat = cx + 10;
+    static const uint8_t k_outer[31] = {4,  6,  8,  10, 12, 14, 16, 17, 18, 19, 20,
+                                        21, 21, 22, 22, 22, 22, 22, 21, 21, 20, 19,
+                                        18, 17, 16, 14, 12, 10, 8,  6,  4};
+    static const uint8_t k_pit_h[19] = {2, 3, 4, 5, 6, 7, 7, 8, 8, 8, 8, 8, 7, 7, 6, 5, 4, 3, 2};
+    const int x_flat = cx + 11;
+    const int pit_cx = cx + 4;
+
     canvas_set_color(canvas, ColorBlack);
-    for (int i = 0; i < 29; i++) {
-        const int y = cy - 14 + i;
-        canvas_draw_line(canvas, x_flat - (int)k_w[i], y, x_flat, y);
+    for (int i = 0; i < 31; i++) {
+        const int y = cy - 15 + i;
+        canvas_draw_line(canvas, x_flat - (int)k_outer[i], y, x_flat, y);
     }
-    canvas_draw_line(canvas, cx - 2, cy - 15, cx - 2, cy - 19);
-    canvas_draw_dot(canvas, cx - 3, cy - 19);
+
+    canvas_set_color(canvas, ColorWhite);
+    for (int i = 0; i < 19; i++) {
+        const int y = cy - 9 + i;
+        const int hw = (int)k_pit_h[i];
+        canvas_draw_line(canvas, pit_cx - hw, y, pit_cx + hw, y);
+    }
+
+    canvas_set_color(canvas, ColorBlack);
+    for (int i = 0; i < 19; i++) {
+        const int y = cy - 9 + i;
+        const int hw = (int)k_pit_h[i];
+        canvas_draw_dot(canvas, pit_cx - hw, y);
+        canvas_draw_dot(canvas, pit_cx + hw, y);
+    }
 }
 
 static void draw_victory_screen(Canvas *canvas) {
@@ -266,6 +301,10 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     }
 
     draw_cup_outline(canvas);
+
+    if (!game_over) {
+        draw_pit_toothpicks_on_rim(canvas, cx, pit_cy, pit_r);
+    }
 
     canvas_set_font(canvas, FontSecondary);
     if (game_over) {
