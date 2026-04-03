@@ -263,7 +263,7 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     const int cx = 64;
     const size_t pit_r = game_over ? 8u : 9u;
     /* Pit center: mostly above water; only ~3 px of the pit dips below the surface. */
-    const int pit_cy = game_over ? (CupY + 22) : (CupY + 21);
+    const int pit_cy = game_over ? (CupY + 22) : (CupY + 9);
     const int y_drought_surface = CupY + CupH - 9;
 
     if (game_over) {
