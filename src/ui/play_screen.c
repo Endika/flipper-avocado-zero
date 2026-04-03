@@ -196,64 +196,26 @@ static void draw_cup_outline(Canvas *canvas) {
     canvas_draw_line(canvas, bot_l, CupBotY, bot_r, CupBotY);
 }
 
-static void draw_star_sparkle(Canvas *canvas, int cx, int cy) {
-    const int r = 10;
+/** Half avocado: flat cut on the right, rounded peel on the left (filled silhouette). */
+static void draw_half_avocado_silhouette(Canvas *canvas, int cx, int cy) {
+    static const uint8_t k_w[29] = {3,  5,  7,  9,  11, 13, 15, 16, 17, 18, 19, 19, 20, 20, 20,
+                                    20, 20, 19, 19, 18, 17, 16, 15, 13, 11, 9,  7,  5,  3};
+    const int x_flat = cx + 10;
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_line(canvas, cx, cy - r, cx, cy + r);
-    canvas_draw_line(canvas, cx - r, cy, cx + r, cy);
-    canvas_draw_line(canvas, cx - 7, cy - 7, cx + 7, cy + 7);
-    canvas_draw_line(canvas, cx - 7, cy + 7, cx + 7, cy - 7);
-}
-
-static void draw_mini_avocado(Canvas *canvas, int cx, int cy) {
-    const int top_y = cy - 12;
-    const int bot_y = cy + 10;
-    const int top_hw = 8;
-    const int bot_hw = 7;
-    const int pit_cx = cx;
-    const int pit_cy = cy - 1;
-    const size_t peel_r = 7;
-
-    canvas_set_color(canvas, ColorBlack);
-    int l = 0;
-    int r = 0;
-    glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, top_y, &l, &r);
-    canvas_draw_line(canvas, l, top_y, r, top_y);
-    const int bl = cx - bot_hw;
-    const int br = cx + bot_hw;
-    canvas_draw_line(canvas, cx - top_hw, top_y, bl, bot_y);
-    canvas_draw_line(canvas, cx + top_hw, top_y, br, bot_y);
-    canvas_draw_line(canvas, bl, bot_y, br, bot_y);
-
-    for (int y = top_y + 1; y < bot_y; y++) {
-        glass_horizontal_at(cx, top_y, bot_y, top_hw, bot_hw, y, &l, &r);
-        for (int x = l + 1; x < r; x++) {
-            if (((x + y) & 1) == 0) {
-                canvas_draw_dot(canvas, x, y);
-            }
-        }
+    for (int i = 0; i < 29; i++) {
+        const int y = cy - 14 + i;
+        canvas_draw_line(canvas, x_flat - (int)k_w[i], y, x_flat, y);
     }
-
-    canvas_draw_circle(canvas, pit_cx, pit_cy, peel_r);
-    canvas_draw_disc(canvas, pit_cx, pit_cy + 1, 3);
-    canvas_set_color(canvas, ColorWhite);
-    canvas_draw_dot(canvas, pit_cx - 2, pit_cy - 2);
-    canvas_set_color(canvas, ColorBlack);
-    canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r, pit_cx, pit_cy - (int)peel_r - 2);
-    canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r - 1, pit_cx - 3,
-                     pit_cy - (int)peel_r - 3);
-    canvas_draw_line(canvas, pit_cx, pit_cy - (int)peel_r - 1, pit_cx + 3,
-                     pit_cy - (int)peel_r - 3);
+    canvas_draw_line(canvas, cx - 2, cy - 15, cx - 2, cy - 19);
+    canvas_draw_dot(canvas, cx - 3, cy - 19);
 }
 
 static void draw_victory_screen(Canvas *canvas) {
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "Victory!");
-    draw_star_sparkle(canvas, 64, 22);
-    draw_mini_avocado(canvas, 64, 44);
+    draw_half_avocado_silhouette(canvas, 64, 36);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignBottom, "Congratulations!");
     elements_button_right(canvas, "OK");
 }
 
@@ -307,8 +269,6 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 
     canvas_set_font(canvas, FontSecondary);
     if (game_over) {
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, "Too dry!");
-        canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignBottom, "Press Start: new game");
         elements_button_right(canvas, "Start");
     } else {
         elements_button_right(canvas, "Clean");
