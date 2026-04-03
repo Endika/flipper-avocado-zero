@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.9...v0.0.10) (2026-04-03)
+
+
+### Bug Fixes
+
+* avocado and water level ([df8007b](https://github.com/Endika/flipper-avocado-zero/commit/df8007b0573adf50947bbb68bf4610b39857da10))
+
 ## [0.0.9](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.8...v0.0.9) (2026-04-03)
 
 
