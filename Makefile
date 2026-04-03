@@ -3,7 +3,7 @@ PROJECT_NAME = avocado-zero
 
 FAP_APPID = flipper_avocado_zero
 
-FLIPPER_FIRMWARE_PATH ?= /home/endika/flipperzero-firmware
+FLIPPER_FIRMWARE_PATH ?= /home/<YOUR_PATH>/flipperzero-firmware
 PWD = $(shell pwd)
 
 CC = gcc
