@@ -106,6 +106,54 @@ static void test_is_game_over(void) {
     assert(avocado_rules_is_game_over(&d));
 }
 
+static void test_debug_add_simulated_days(void) {
+    AvocadoData d;
+    memset(&d, 0, sizeof(d));
+    d.last_timestamp = 1000;
+    avocado_rules_debug_add_simulated_days(&d, 3);
+    assert(d.dirty_level == 3);
+    assert(d.last_timestamp == 1000 + 3u * 86400u);
+}
+
+static void test_debug_add_days_noop_when_game_over(void) {
+    AvocadoData d;
+    memset(&d, 0, sizeof(d));
+    d.dirty_level = AVOCADO_GRIME_GAME_OVER;
+    d.last_timestamp = 500;
+    avocado_rules_debug_add_simulated_days(&d, 5);
+    assert(d.dirty_level == AVOCADO_GRIME_GAME_OVER);
+    assert(d.last_timestamp == 500);
+}
+
+static void test_debug_bump_roots(void) {
+    AvocadoData d;
+    memset(&d, 0, sizeof(d));
+    d.roots_length = 2;
+    avocado_rules_debug_bump_roots(&d);
+    assert(d.roots_length == 3);
+    assert(d.dirty_level == 0);
+}
+
+static void test_debug_preset_victory_pending(void) {
+    AvocadoData d;
+    memset(&d, 0, sizeof(d));
+    d.dirty_level = 5;
+    d.roots_length = 1;
+    d.victory_seen = 1;
+    avocado_rules_debug_preset_victory_pending(&d);
+    assert(d.dirty_level == 0);
+    assert(d.roots_length == AVOCADO_ROOTS_MAX);
+    assert(d.victory_seen == 0);
+    assert(avocado_rules_should_show_victory(&d));
+}
+
+static void test_debug_preset_game_over(void) {
+    AvocadoData d;
+    memset(&d, 0, sizeof(d));
+    avocado_rules_debug_preset_game_over(&d);
+    assert(avocado_rules_is_game_over(&d));
+}
+
 int main(void) {
     test_apply_days_adds_dirt();
     test_apply_no_partial_day();
@@ -117,6 +165,11 @@ int main(void) {
     test_reaching_max_roots_sets_victory_pending();
     test_acknowledge_victory();
     test_is_game_over();
+    test_debug_add_simulated_days();
+    test_debug_add_days_noop_when_game_over();
+    test_debug_bump_roots();
+    test_debug_preset_victory_pending();
+    test_debug_preset_game_over();
     puts("avocado_rules tests OK");
     return 0;
 }

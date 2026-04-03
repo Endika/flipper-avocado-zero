@@ -11,6 +11,7 @@ struct PlayScreen {
     View *view;
     AvocadoData *data;
     AvocadoFeedback *feedback;
+    bool qa_mode;
 };
 
 typedef struct {
@@ -91,14 +92,35 @@ static void draw_water_dither(Canvas *canvas, int y_surface) {
     }
 }
 
+/** Half-width per scanline (dy = row - 9), pear-like pit; authored for base_r = 9. */
+static const uint8_t k_pit_half_w[19] = {2, 3, 4, 5, 6, 7, 8, 8, 8, 9, 8, 8, 8, 7, 7, 6, 5, 4, 3};
+
 static void draw_pit(Canvas *canvas, int cx, int cy, size_t radius, bool cracked) {
+    const int scale = (int)radius;
+    const int base_r = 9;
+
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_disc(canvas, cx, cy, radius);
+    for (int i = 0; i < 19; i++) {
+        const int dy = i - 9;
+        int hw = (int)k_pit_half_w[i] * scale / base_r;
+        if (hw < 1) {
+            hw = 1;
+        }
+        const int y = cy + dy;
+        canvas_draw_line(canvas, cx - hw, y, cx + hw, y);
+    }
+
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_disc(canvas, cx - 3, cy - 3, 2);
+    canvas_draw_dot(canvas, cx - 4, cy - 5);
     canvas_set_color(canvas, ColorBlack);
+
     if (cracked) {
-        canvas_draw_line(canvas, cx - (int)radius + 2, cy - 2, cx + (int)radius - 2, cy + 2);
+        canvas_draw_line(canvas, cx - scale + 1, cy - 3, cx + scale - 1, cy + 4);
+    } else {
+        const int mid_hw = (int)k_pit_half_w[9] * scale / base_r;
+        const int yp = cy - 1;
+        canvas_draw_line(canvas, cx - mid_hw, yp, cx - mid_hw - 11, yp + 2);
+        canvas_draw_line(canvas, cx + mid_hw, yp, cx + mid_hw + 11, yp + 2);
     }
 }
 
@@ -243,6 +265,11 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 
     canvas_clear(canvas);
 
+    if (screen->qa_mode) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 126, 2, AlignRight, AlignTop, "QA");
+    }
+
     if (avocado_rules_should_show_victory(d)) {
         draw_victory_screen(canvas);
         return;
@@ -291,6 +318,48 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 // cppcheck-suppress constParameterCallback
 static bool play_input_callback(InputEvent *event, void *context) {
     PlayScreen *screen = context;
+
+    if (event->type == InputTypeLong && event->key == InputKeyOk) {
+        screen->qa_mode = !screen->qa_mode;
+        view_commit_model(screen->view, true);
+        return true;
+    }
+
+    if (screen->qa_mode) {
+        if (event->type == InputTypeLong && event->key == InputKeyLeft) {
+            avocado_rules_debug_preset_victory_pending(screen->data);
+            avocado_data_save(screen->data);
+            view_commit_model(screen->view, true);
+            return true;
+        }
+        if (event->type == InputTypeLong && event->key == InputKeyRight) {
+            avocado_rules_debug_preset_game_over(screen->data);
+            avocado_data_save(screen->data);
+            view_commit_model(screen->view, true);
+            return true;
+        }
+        if (event->type == InputTypeShort) {
+            if (event->key == InputKeyUp) {
+                avocado_rules_debug_add_simulated_days(screen->data, 1);
+                avocado_data_save(screen->data);
+                view_commit_model(screen->view, true);
+                return true;
+            }
+            if (event->key == InputKeyDown) {
+                avocado_rules_debug_add_simulated_days(screen->data, 7);
+                avocado_data_save(screen->data);
+                view_commit_model(screen->view, true);
+                return true;
+            }
+            if (event->key == InputKeyLeft) {
+                avocado_rules_debug_bump_roots(screen->data);
+                avocado_data_save(screen->data);
+                view_commit_model(screen->view, true);
+                return true;
+            }
+        }
+    }
+
     if (event->type != InputTypeShort) {
         return false;
     }
@@ -336,6 +405,7 @@ PlayScreen *play_screen_alloc(AvocadoData *data, AvocadoFeedback *feedback) {
     }
     screen->data = data;
     screen->feedback = feedback;
+    screen->qa_mode = false;
 
     view_allocate_model(screen->view, ViewModelTypeLockFree, sizeof(PlayViewModel));
     PlayViewModel *vm = view_get_model(screen->view);

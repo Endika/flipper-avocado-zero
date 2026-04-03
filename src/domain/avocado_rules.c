@@ -54,3 +54,36 @@ void avocado_rules_acknowledge_victory(AvocadoData *state) {
         state->victory_seen = 1;
     }
 }
+
+void avocado_rules_debug_add_simulated_days(AvocadoData *state, uint32_t days) {
+    if (days == 0u || avocado_rules_is_game_over(state)) {
+        return;
+    }
+    uint32_t sum = (uint32_t)state->dirty_level + days;
+    if (sum > 255u) {
+        sum = 255u;
+    }
+    state->dirty_level = (uint8_t)sum;
+    state->last_timestamp += days * SECONDS_PER_DAY;
+}
+
+void avocado_rules_debug_bump_roots(AvocadoData *state) {
+    if (avocado_rules_is_game_over(state) || state->roots_length >= AVOCADO_ROOTS_MAX) {
+        return;
+    }
+    state->dirty_level = 0;
+    state->roots_length++;
+    if (state->roots_length == AVOCADO_ROOTS_MAX) {
+        state->victory_seen = 0;
+    }
+}
+
+void avocado_rules_debug_preset_victory_pending(AvocadoData *state) {
+    state->dirty_level = 0;
+    state->roots_length = AVOCADO_ROOTS_MAX;
+    state->victory_seen = 0;
+}
+
+void avocado_rules_debug_preset_game_over(AvocadoData *state) {
+    state->dirty_level = AVOCADO_GRIME_GAME_OVER;
+}
