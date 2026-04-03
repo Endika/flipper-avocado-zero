@@ -23,7 +23,7 @@ typedef struct {
  */
 enum {
     CupCx = 64,
-    CupY = 18,
+    CupY = 22,
     /* Shorter glass (crop bottom) so pit can sit higher and still fit HUD/roots. */
     CupH = 32,
     CupTopY = CupY + 2,
@@ -276,8 +276,8 @@ static void play_draw_callback(Canvas *canvas, void *model) {
      * Water fill starts at CupTopY + 1. Pit center high so most of the disc is above
      * the water line (y < CupTopY + 1): reads as floating with top sticking out of the glass.
      */
-    /* Higher center → more disc above water row CupTopY+1; r=9 keeps a thin wet band. */
-    const int pit_cy = game_over ? (CupY + 22) : (CupY + 1);
+    /* Normal: center slightly above cup origin so more of the pit clears the water line. */
+    const int pit_cy = game_over ? (CupY + 22) : (CupY - 1);
     const int y_drought_surface = CupY + CupH - 9;
 
     if (game_over) {
