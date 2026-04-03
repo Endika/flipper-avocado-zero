@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.10...v0.0.11) (2026-04-03)
+
+
+### Bug Fixes
+
+* avocado position ([2981929](https://github.com/Endika/flipper-avocado-zero/commit/29819291f84f01979af37582da68952c3c04443b))
+
 ## [0.0.10](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.9...v0.0.10) (2026-04-03)
 
 
