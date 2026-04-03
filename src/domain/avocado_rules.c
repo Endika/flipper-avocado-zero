@@ -49,10 +49,14 @@ void avocado_rules_on_primary_action(AvocadoData *state) {
     }
 }
 
-void avocado_rules_acknowledge_victory(AvocadoData *state) {
-    if (state->roots_length >= AVOCADO_ROOTS_MAX) {
-        state->victory_seen = 1;
+void avocado_rules_acknowledge_victory(AvocadoData *state, uint32_t now_ts) {
+    if (state->roots_length < AVOCADO_ROOTS_MAX) {
+        return;
     }
+    state->victory_seen = 1;
+    state->roots_length = 0;
+    state->dirty_level = 0;
+    state->last_timestamp = now_ts;
 }
 
 void avocado_rules_debug_add_simulated_days(AvocadoData *state, uint32_t days) {

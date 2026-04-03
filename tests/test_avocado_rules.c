@@ -92,8 +92,13 @@ static void test_acknowledge_victory(void) {
     memset(&d, 0, sizeof(d));
     d.roots_length = AVOCADO_ROOTS_MAX;
     d.victory_seen = 0;
-    avocado_rules_acknowledge_victory(&d);
+    d.dirty_level = 3;
+    d.last_timestamp = 100;
+    avocado_rules_acknowledge_victory(&d, 9999u);
     assert(d.victory_seen == 1);
+    assert(d.roots_length == 0);
+    assert(d.dirty_level == 0);
+    assert(d.last_timestamp == 9999u);
     assert(!avocado_rules_should_show_victory(&d));
 }
 

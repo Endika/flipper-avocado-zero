@@ -3,6 +3,7 @@
 #include "include/platform/feedback_helper.h"
 #include "include/platform/storage_helper.h"
 #include <furi.h>
+#include <furi_hal_rtc.h>
 #include <gui/canvas.h>
 #include <gui/elements.h>
 #include <gui/view.h>
@@ -374,7 +375,7 @@ static bool play_input_callback(InputEvent *event, void *context) {
 
 static void play_on_action(PlayScreen *screen) {
     if (avocado_rules_should_show_victory(screen->data)) {
-        avocado_rules_acknowledge_victory(screen->data);
+        avocado_rules_acknowledge_victory(screen->data, furi_hal_rtc_get_timestamp());
         avocado_data_save(screen->data);
         if (screen->feedback) {
             avocado_feedback_play(screen->feedback, false);
