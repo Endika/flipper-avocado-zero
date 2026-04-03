@@ -7,8 +7,6 @@
 #include <gui/elements.h>
 #include <gui/view.h>
 #include <input/input.h>
-#include <stdio.h>
-
 struct PlayScreen {
     View *view;
     AvocadoData *data;
@@ -26,7 +24,8 @@ typedef struct {
 enum {
     CupCx = 64,
     CupY = 14,
-    CupH = 38,
+    /* Shorter glass (crop bottom) so pit can sit higher and still fit HUD/roots. */
+    CupH = 32,
     CupTopY = CupY + 2,
     CupBotY = CupY + CupH - 2,
     CupTopHalfW = 11,
@@ -63,17 +62,20 @@ static void cup_horizontal_at(int y, int *out_l, int *out_r) {
 }
 
 /**
- * Normal play: water fills the cup interior up to the rim (below CupTopY line).
- * Pit is drawn on top so it still reads as floating with only a sliver submerged.
+ * Normal play: water fills the cup to the rim. Clear water ≈ 50% checker; as
+ * dirty_level rises, more “off” cells fill in → visibly murky toward game over.
  */
-static void draw_water_dither_full_cup(Canvas *canvas) {
+static void draw_water_dither_full_cup(Canvas *canvas, uint8_t dirty_level) {
     canvas_set_color(canvas, ColorBlack);
     int l = 0;
     int r = 0;
+    const unsigned murk = (unsigned)dirty_level * 128u / (unsigned)AVOCADO_GRIME_GAME_OVER;
     for (int y = CupTopY + 1; y < CupBotY; y++) {
         cup_horizontal_at(y, &l, &r);
         for (int x = l + 1; x < r; x++) {
-            if (((x + y) & 1) == 0) {
+            const int checker = (x + y) & 1;
+            const unsigned h = (unsigned)((x * 31 + y * 17) & 127);
+            if (checker == 0 || murk > h) {
                 canvas_draw_dot(canvas, x, y);
             }
         }
@@ -146,13 +148,21 @@ static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
 }
 
 static void draw_grime(Canvas *canvas, uint8_t grime) {
+    if (grime == 0u) {
+        return;
+    }
     canvas_set_color(canvas, ColorBlack);
     const int y_span = CupBotY - CupTopY - 10;
     if (y_span < 4) {
         return;
     }
-    for (uint8_t i = 0; i < grime && i < 12u; i++) {
-        const int y = CupTopY + 6 + (int)((i * 13u) % (unsigned)y_span);
+    /* More specks as grime rises (extra visible when water is already dark). */
+    unsigned n = (unsigned)grime * 2u + 4u;
+    if (n > 28u) {
+        n = 28u;
+    }
+    for (unsigned i = 0; i < n; i++) {
+        const int y = CupTopY + 6 + (int)((i * 13u + (unsigned)grime * 3u) % (unsigned)y_span);
         int l = 0;
         int r = 0;
         cup_horizontal_at(y, &l, &r);
@@ -160,9 +170,9 @@ static void draw_grime(Canvas *canvas, uint8_t grime) {
         if (inner <= 1) {
             continue;
         }
-        const int x = l + 4 + (int)((i * 17u) % (unsigned)inner);
+        const int x = l + 4 + (int)((i * 17u + (unsigned)grime) % (unsigned)inner);
         canvas_draw_dot(canvas, x, y);
-        if (i > 3u) {
+        if (i > 5u && grime > 5u) {
             canvas_draw_dot(canvas, x + 1, y);
         }
     }
@@ -262,8 +272,11 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     const bool game_over = avocado_rules_is_game_over(d);
     const int cx = 64;
     const size_t pit_r = game_over ? 8u : 9u;
-    /* Pit center: mostly above water; only ~3 px of the pit dips below the surface. */
-    const int pit_cy = game_over ? (CupY + 22) : (CupY + 9);
+    /*
+     * Water fill starts at CupTopY + 1. Pit center high so most of the disc is above
+     * the water line (y < CupTopY + 1): reads as floating with top sticking out of the glass.
+     */
+    const int pit_cy = game_over ? (CupY + 20) : (CupY + 5);
     const int y_drought_surface = CupY + CupH - 9;
 
     if (game_over) {
@@ -275,7 +288,7 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     if (game_over) {
         draw_water_dither(canvas, y_drought_surface);
     } else {
-        draw_water_dither_full_cup(canvas);
+        draw_water_dither_full_cup(canvas, d->dirty_level);
     }
 
     draw_pit(canvas, cx, pit_cy, pit_r, game_over);
@@ -288,17 +301,9 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     draw_cup_outline(canvas);
 
     canvas_set_font(canvas, FontSecondary);
-    char line[48];
     if (game_over) {
         canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, "Too dry!");
-        snprintf(line, sizeof(line), "Press Start: new game");
-    } else {
-        snprintf(line, sizeof(line), "Roots %u  Grime %u/%u", (unsigned)d->roots_length,
-                 (unsigned)d->dirty_level, (unsigned)AVOCADO_GRIME_GAME_OVER);
-    }
-    canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignBottom, line);
-
-    if (game_over) {
+        canvas_draw_str_aligned(canvas, 64, 54, AlignCenter, AlignBottom, "Press Start: new game");
         elements_button_right(canvas, "Start");
     } else {
         elements_button_right(canvas, "Clean");
