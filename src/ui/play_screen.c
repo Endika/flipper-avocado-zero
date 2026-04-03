@@ -17,14 +17,9 @@ typedef struct {
     PlayScreen *screen;
 } PlayViewModel;
 
-/**
- * Tumbler: rim only slightly wider than the pit (r=9 → Ø18; mouth Ø22 → 2 px gap/side).
- * Base a bit narrower so it still reads as a glass.
- */
 enum {
     CupCx = 64,
     CupY = 22,
-    /* Shorter glass (crop bottom) so pit can sit higher and still fit HUD/roots. */
     CupH = 32,
     CupTopY = CupY + 2,
     CupBotY = CupY + CupH - 2,
@@ -34,7 +29,6 @@ enum {
 
 static void play_on_action(PlayScreen *screen);
 
-/** Left/right inner x at row y for the trapezoid glass (inclusive edges are the wall). */
 static void glass_horizontal_at(int cx, int top_y, int bot_y, int top_half_w, int bot_half_w, int y,
                                 int *out_l, int *out_r) {
     const int tl = cx - top_half_w;
@@ -61,10 +55,6 @@ static void cup_horizontal_at(int y, int *out_l, int *out_r) {
     glass_horizontal_at(CupCx, CupTopY, CupBotY, CupTopHalfW, CupBotHalfW, y, out_l, out_r);
 }
 
-/**
- * Normal play: water fills the cup to the rim. Clear water ≈ 50% checker; as
- * dirty_level rises, more “off” cells fill in → visibly murky toward game over.
- */
 static void draw_water_dither_full_cup(Canvas *canvas, uint8_t dirty_level) {
     canvas_set_color(canvas, ColorBlack);
     int l = 0;
@@ -82,7 +72,6 @@ static void draw_water_dither_full_cup(Canvas *canvas, uint8_t dirty_level) {
     }
 }
 
-/** Game over: low puddle + surface line (drought). */
 static void draw_water_dither(Canvas *canvas, int y_surface) {
     if (y_surface >= CupBotY) {
         return;
@@ -102,7 +91,6 @@ static void draw_water_dither(Canvas *canvas, int y_surface) {
     }
 }
 
-/** Avocado pit: no face; optional crack when dried (game over). */
 static void draw_pit(Canvas *canvas, int cx, int cy, size_t radius, bool cracked) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_disc(canvas, cx, cy, radius);
@@ -120,7 +108,6 @@ static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
     }
     const int jar_bottom = CupBotY;
     canvas_set_color(canvas, ColorBlack);
-    /* Taproot length scales with level so growth is visible on screen. */
     const int tap_len = 5 + (int)roots * 2;
     int y_tip = y_start + tap_len;
     if (y_tip > jar_bottom) {
@@ -129,13 +116,11 @@ static void draw_roots(Canvas *canvas, int cx, int y_start, uint8_t roots) {
     canvas_draw_line(canvas, cx, y_start, cx, y_tip);
 
     if (roots == 1u) {
-        /* Tiny forks so level 1 is still visible. */
         canvas_draw_line(canvas, cx - 3, y_start + 2, cx, y_start + 5);
         canvas_draw_line(canvas, cx + 3, y_start + 2, cx, y_start + 5);
         return;
     }
 
-    /* Lateral roots: more strands and wider spread as roots grow. */
     for (uint8_t n = 0; n < roots; n++) {
         const int dx = -10 + (20 * (int)n) / ((int)roots - 1);
         const int y_mid = y_start + 3 + (int)n * 2;
@@ -156,7 +141,6 @@ static void draw_grime(Canvas *canvas, uint8_t grime) {
     if (y_span < 4) {
         return;
     }
-    /* More specks as grime rises (extra visible when water is already dark). */
     unsigned n = (unsigned)grime * 2u + 4u;
     if (n > 28u) {
         n = 28u;
@@ -199,11 +183,9 @@ static void draw_star_sparkle(Canvas *canvas, int cx, int cy) {
     canvas_draw_line(canvas, cx - 7, cy + 7, cx + 7, cy - 7);
 }
 
-/** Victory-screen: same tapered glass, dither water, pit + sprout. */
 static void draw_mini_avocado(Canvas *canvas, int cx, int cy) {
     const int top_y = cy - 12;
     const int bot_y = cy + 10;
-    /* Mini pit peel_r=7 (Ø14); rim Ø16 → ~1 px/side clearance. */
     const int top_hw = 8;
     const int bot_hw = 7;
     const int pit_cx = cx;
@@ -272,11 +254,6 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     const bool game_over = avocado_rules_is_game_over(d);
     const int cx = 64;
     const size_t pit_r = game_over ? 8u : 9u;
-    /*
-     * Water fill starts at CupTopY + 1. Pit center high so most of the disc is above
-     * the water line (y < CupTopY + 1): reads as floating with top sticking out of the glass.
-     */
-    /* Normal: center slightly above cup origin so more of the pit clears the water line. */
     const int pit_cy = game_over ? (CupY + 22) : (CupY - 1);
     const int y_drought_surface = CupY + CupH - 9;
 
@@ -311,7 +288,6 @@ static void play_draw_callback(Canvas *canvas, void *model) {
     }
 }
 
-/* Flipper ViewInputCallback uses non-const InputEvent*; cannot be const here. */
 // cppcheck-suppress constParameterCallback
 static bool play_input_callback(InputEvent *event, void *context) {
     PlayScreen *screen = context;

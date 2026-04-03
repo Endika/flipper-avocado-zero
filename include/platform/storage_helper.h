@@ -1,6 +1,3 @@
-/**
- * Infrastructure: SD persistence for domain state and onboarding marker.
- */
 #pragma once
 
 #include "include/domain/avocado_state.h"

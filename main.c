@@ -1,8 +1,3 @@
-/**
- * Composition root (Flipper entry): wires application + infrastructure + UI.
- * Domain: include/domain + src/domain | App: include/app + src/app |
- * Platform: include/platform + src/platform | UI: include/ui + src/ui
- */
 #include "include/app/avocado_session.h"
 #include "include/domain/avocado_state.h"
 #include "include/platform/feedback_helper.h"

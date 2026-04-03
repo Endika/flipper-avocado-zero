@@ -1,10 +1,9 @@
-# Avocado Zero — host unit tests (domain) + Flipper .fap via fbt
-# Symlink folder name under applications_user (short path).
-PROJECT_NAME = avocado_zero
+# Host tests + FAP via fbt. Symlink name under applications_user (matches apps_data path).
+PROJECT_NAME = avocado-zero
 
 FAP_APPID = flipper_avocado_zero
 
-FLIPPER_FIRMWARE_PATH ?= /home/<YOUR_PATH>/flipperzero-firmware
+FLIPPER_FIRMWARE_PATH ?= /home/endika/flipperzero-firmware
 PWD = $(shell pwd)
 
 CC = gcc
