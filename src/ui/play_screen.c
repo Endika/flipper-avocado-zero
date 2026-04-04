@@ -134,7 +134,7 @@ static void draw_pit_toothpicks_on_rim(Canvas *canvas, int cx, int cy, size_t ra
     if (hw_c < 1) {
         hw_c = 1;
     }
-    const int stick_past_rim = 22;
+    const int stick_past_rim = 19;
     canvas_set_color(canvas, ColorBlack);
     /* Pit to rim corner, then long horizontal stub outside the glass. */
     canvas_draw_line(canvas, cx - hw_c, cy, rim_l, CupTopY);
