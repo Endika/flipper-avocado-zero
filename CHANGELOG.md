@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.25](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.24...v0.0.25) (2026-04-04)
+
+
+### Bug Fixes
+
+* docs ([555107b](https://github.com/Endika/flipper-avocado-zero/commit/555107b1f2f1b50201da3f186d69a8758d963d29))
+
 ## [0.0.24](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.23...v0.0.24) (2026-04-04)
 
 
