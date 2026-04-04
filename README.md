@@ -17,7 +17,7 @@ Flipper Zero game: maintain an avocado pit in water—clean the glass, grow root
 | `make linter` | `cppcheck` on app sources |
 | `make format` | `clang-format` tracked `.c` / `.h` |
 
-Set `FLIPPER_FIRMWARE_PATH` if your firmware is not at `/home/endika/flipperzero-firmware`.
+Set `FLIPPER_FIRMWARE_PATH` if your firmware is not at `/home/<YOUR_PATCH>/flipperzero-firmware`.
 
 ## Save data
 
