@@ -8,11 +8,19 @@
 #include <gui/elements.h>
 #include <gui/view.h>
 #include <input/input.h>
+
+/* 1 = dev shortcuts (long OK, etc.). Default 0 for release; override with -DAVOCADO_QA_MODE=1 */
+#ifndef AVOCADO_QA_MODE
+#define AVOCADO_QA_MODE 0
+#endif
+
 struct PlayScreen {
     View *view;
     AvocadoData *data;
     AvocadoFeedback *feedback;
+#if AVOCADO_QA_MODE
     bool qa_mode;
+#endif
 };
 
 typedef struct {
@@ -266,10 +274,12 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 
     canvas_clear(canvas);
 
+#if AVOCADO_QA_MODE
     if (screen->qa_mode) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 126, 2, AlignRight, AlignTop, "QA");
     }
+#endif
 
     if (avocado_rules_should_show_victory(d)) {
         draw_victory_screen(canvas);
@@ -322,6 +332,7 @@ static void play_draw_callback(Canvas *canvas, void *model) {
 static bool play_input_callback(InputEvent *event, void *context) {
     PlayScreen *screen = context;
 
+#if AVOCADO_QA_MODE
     if (event->type == InputTypeLong && event->key == InputKeyOk) {
         screen->qa_mode = !screen->qa_mode;
         view_commit_model(screen->view, true);
@@ -362,6 +373,7 @@ static bool play_input_callback(InputEvent *event, void *context) {
             }
         }
     }
+#endif
 
     if (event->type != InputTypeShort) {
         return false;
@@ -408,7 +420,9 @@ PlayScreen *play_screen_alloc(AvocadoData *data, AvocadoFeedback *feedback) {
     }
     screen->data = data;
     screen->feedback = feedback;
+#if AVOCADO_QA_MODE
     screen->qa_mode = false;
+#endif
 
     view_allocate_model(screen->view, ViewModelTypeLockFree, sizeof(PlayViewModel));
     PlayViewModel *vm = view_get_model(screen->view);
