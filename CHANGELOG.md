@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.25...v0.1.0) (2026-04-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* first stable release
+
+### Miscellaneous Chores
+
+* first stable release ([c500f6a](https://github.com/Endika/flipper-avocado-zero/commit/c500f6a948a28f96311094ed2a13c56fdbaf0872))
+
 ## [0.0.25](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.24...v0.0.25) (2026-04-04)
 
 
