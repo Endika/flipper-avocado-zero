@@ -1,6 +1,6 @@
 App(
     appid="flipper_avocado_zero",
-    name="Avocado Zero Alpha",
+    name="Avocado Zero",
     apptype=FlipperAppType.EXTERNAL,
     sources=[
         "main.c",
