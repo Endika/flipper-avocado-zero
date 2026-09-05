@@ -269,7 +269,7 @@ static void draw_victory_screen(Canvas *canvas) {
 static void play_draw_callback(Canvas *canvas, void *model) {
     furi_assert(model);
     const PlayViewModel *vm = model;
-    PlayScreen *screen = vm->screen;
+    const PlayScreen *screen = vm->screen;
     const AvocadoData *d = screen->data;
 
     canvas_clear(canvas);

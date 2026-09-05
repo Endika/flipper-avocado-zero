@@ -32,7 +32,7 @@ format:
 	clang-format -i $(FORMAT_FILES)
 
 linter:
-	cppcheck --enable=all --inline-suppr --error-exitcode=1 -I. \
+	cppcheck --enable=all --inline-suppr --error-exitcode=1 --check-level=exhaustive -I. \
 		--suppress=missingIncludeSystem \
 		--suppress=unusedFunction:main.c \
 		src/domain/avocado_rules.c src/app/avocado_session.c \
