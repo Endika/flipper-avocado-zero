@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Endika/flipper-avocado-zero/compare/v0.1.0...v0.1.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* make cppcheck clean under 2.21 ([7a9d913](https://github.com/Endika/flipper-avocado-zero/commit/7a9d91346707ed0a2d59e83ef69528c1a5eb2869))
+
 ## [0.1.0](https://github.com/Endika/flipper-avocado-zero/compare/v0.0.25...v0.1.0) (2026-04-05)
 
 
