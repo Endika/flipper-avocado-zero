@@ -35,19 +35,28 @@ linter:
 	cppcheck --enable=all --inline-suppr --error-exitcode=1 --check-level=exhaustive -I. \
 		--suppress=missingIncludeSystem \
 		--suppress=unusedFunction:main.c \
-		src/domain/avocado_rules.c src/app/avocado_session.c \
+		src/domain/avocado_rules.c src/domain/avocado_store_status.c src/app/avocado_session.c \
 		src/platform/feedback_helper.c src/platform/storage_helper.c \
-		src/ui/play_screen.c src/ui/welcome_screen.c main.c tests/test_avocado_rules.c
+		src/ui/play_screen.c src/ui/welcome_screen.c main.c tests/test_avocado_rules.c \
+		tests/test_avocado_store_status.c
 
-test: avocado_rules.o tests/test_avocado_rules.o
+test: avocado_rules.o tests/test_avocado_rules.o avocado_store_status.o tests/test_avocado_store_status.o
 	$(CC) $(CFLAGS) -o test_avocado_rules avocado_rules.o tests/test_avocado_rules.o
 	./test_avocado_rules
+	$(CC) $(CFLAGS) -o test_avocado_store_status avocado_store_status.o tests/test_avocado_store_status.o
+	./test_avocado_store_status
 
 avocado_rules.o: src/domain/avocado_rules.c include/domain/avocado_rules.h include/domain/avocado_state.h
 	$(CC) $(CFLAGS) -c src/domain/avocado_rules.c -o avocado_rules.o
 
 tests/test_avocado_rules.o: tests/test_avocado_rules.c include/domain/avocado_rules.h include/domain/avocado_state.h
 	$(CC) $(CFLAGS) -c tests/test_avocado_rules.c -o tests/test_avocado_rules.o
+
+avocado_store_status.o: src/domain/avocado_store_status.c include/domain/avocado_store_status.h
+	$(CC) $(CFLAGS) -c src/domain/avocado_store_status.c -o avocado_store_status.o
+
+tests/test_avocado_store_status.o: tests/test_avocado_store_status.c include/domain/avocado_store_status.h
+	$(CC) $(CFLAGS) -c tests/test_avocado_store_status.c -o tests/test_avocado_store_status.o
 
 prepare:
 	@if [ -d "$(FLIPPER_FIRMWARE_PATH)" ]; then \
@@ -69,4 +78,4 @@ fap: prepare clean_firmware clean
 	fi
 
 clean:
-	rm -f *.o tests/*.o test_avocado_rules
+	rm -f *.o tests/*.o test_avocado_rules test_avocado_store_status

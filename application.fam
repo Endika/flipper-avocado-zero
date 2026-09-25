@@ -5,6 +5,7 @@ App(
     sources=[
         "main.c",
         "src/domain/avocado_rules.c",
+        "src/domain/avocado_store_status.c",
         "src/app/avocado_session.c",
         "src/platform/storage_helper.c",
         "src/platform/feedback_helper.c",
